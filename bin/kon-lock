@@ -1,0 +1,21 @@
+#!/bin/sh
+# swaylock with a blurred wallpaper
+
+PATH=$HOME/.local/bin:$PATH
+dir=${XDG_CACHE_HOME:-$HOME/.cache}/aro
+out=$dir/lock.png
+wp=$(kon-wm wallpaper 2>/dev/null)
+[ "$wp" = auto ] && wp=/usr/share/backgrounds/aro/aro-wallpaper-1920x1080.png
+
+# only blur again if the wallpaper changed
+if [ -f "$wp" ]; then
+	stamp="$wp $(stat -c %Y "$wp")"
+	if [ ! -f "$out" ] || [ "$(cat "$out.src" 2>/dev/null)" != "$stamp" ]; then
+		mkdir -p "$dir"
+		magick "$wp" -resize '1920x1080^' -gravity center -extent 1920x1080 \
+			-blur 0x4 "$out.tmp.png" &&
+			mv "$out.tmp.png" "$out" && printf '%s' "$stamp" > "$out.src"
+	fi
+fi
+[ -f "$out" ] && exec swaylock -i "$out" "$@"
+exec swaylock "$@"

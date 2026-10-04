@@ -1,0 +1,234 @@
+#!/usr/bin/env python3
+"""kon-wm - one interface to aro, Hyprland and niri for the aero shell.
+
+    kon-wm name                 aro, hyprland or niri
+    kon-wm windows              JSON, in aroctl's shape
+    kon-wm workspaces           JSON, in aroctl's shape
+    kon-wm output               the focused output's name
+    kon-wm events               a line per change; "focus <id> " when focus moves
+    kon-wm workspace N          switch to workspace N
+    kon-wm overview             the compositor's overview, where it has one
+    kon-wm quit                 log out
+    kon-wm wallpaper [FILE]     print or set the wallpaper
+    kon-wm reload               reload the compositor's config
+"""
+
+import ctypes
+import json
+import os
+import signal
+import socket
+import subprocess
+import sys
+from pathlib import Path
+
+PALETTE = Path.home() / ".cache/kon/palette.json"
+
+
+def run(*cmd):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True).stdout
+    except OSError:
+        return ""
+
+
+def parse(text, empty):
+    try:
+        return json.loads(text) or empty
+    except ValueError:
+        return empty
+
+
+def out(v):
+    print(json.dumps(v) if not isinstance(v, str) else v)
+
+
+def name():
+    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+        return "hyprland"
+    if os.environ.get("NIRI_SOCKET"):
+        return "niri"
+    return "aro"
+
+
+def die_with_parent():
+    # kill niri msg when we die
+    ctypes.CDLL(None).prctl(1, signal.SIGTERM)
+
+
+def kon_wallpaper():
+    try:
+        return json.loads(PALETTE.read_text()).get("wallpaper", "")
+    except (OSError, ValueError):
+        return ""
+
+
+# aro
+
+class Aro:
+    def windows(self): return parse(run("aroctl", "-j", "windows"), [])
+    def workspaces(self): return parse(run("aroctl", "-j", "workspaces"), [])
+    def output(self):
+        mons = parse(run("aroctl", "-j", "monitors"), [])
+        return next((m["name"] for m in mons if m.get("focused")), "")
+    def events(self): os.execvp("aroctl", ["aroctl", "subscribe"])
+    def workspace(self, n): run("aroctl", "dispatch", "workspace", n)
+    def overview(self): run("aroctl", "dispatch", "overview")
+    def quit(self): run("aroctl", "dispatch", "quit")
+    def wallpaper(self, f=None):
+        if f:
+            run("aroctl", "wallpaper", f)
+        else:
+            return run("aroctl", "wallpaper").strip()
+    def reload(self): run("aroctl", "reload")
+
+
+# hyprland
+
+class Hyprland:
+    def j(self, what): return parse(run("hyprctl", "-j", what), [])
+
+    def windows(self):
+        mons = self.j("monitors")
+        byid = {m["id"]: m for m in mons}
+        shown = {m["activeWorkspace"]["id"] for m in mons} | {m["specialWorkspace"]["id"] for m in mons}
+        res = []
+        for c in self.j("clients"):
+            if not c.get("mapped", True):
+                continue
+            ws = c["workspace"]["id"]
+            mon = byid.get(c["monitor"], {})
+            res.append({
+                "id": int(c["address"], 16), "app_id": c["class"], "title": c["title"],
+                "output": mon.get("name", ""), "workspace": ws,
+                "state": "scratchpad" if ws < 0 else ("floating" if c["floating"] else "tiled"),
+                "floating": c["floating"], "fullscreen": bool(c["fullscreen"]),
+                "focused": c.get("focusHistoryID") == 0,
+                "visible": ws in shown and not c.get("hidden", False),
+                "x": c["at"][0], "y": c["at"][1], "width": c["size"][0], "height": c["size"][1],
+            })
+        return res
+
+    def workspaces(self):
+        mons = self.j("monitors")
+        active = {m["activeWorkspace"]["id"] for m in mons}
+        focused = next((m["activeWorkspace"]["id"] for m in mons if m["focused"]), None)
+        return sorted(({"output": w["monitor"], "index": w["id"], "windows": w["windows"],
+                        "visible": w["id"] in active, "focused": w["id"] == focused}
+                       for w in self.j("workspaces") if w["id"] > 0), key=lambda w: w["index"])
+
+    def output(self):
+        return next((m["name"] for m in self.j("monitors") if m["focused"]), "")
+
+    def events(self):
+        path = Path(os.environ["XDG_RUNTIME_DIR"]) / "hypr" / os.environ["HYPRLAND_INSTANCE_SIGNATURE"] / ".socket2.sock"
+        s = socket.socket(socket.AF_UNIX)
+        s.connect(str(path))
+        for line in s.makefile(encoding="utf-8", errors="replace"):
+            ev, _, data = line.rstrip("\n").partition(">>")
+            if ev == "activewindowv2" and data:
+                print(f"focus {int(data, 16)} ", flush=True)
+            else:
+                print(ev, flush=True)
+
+    def workspace(self, n): run("hyprctl", "dispatch", f"hl.dsp.focus({{ workspace = {int(n)} }})")
+    def overview(self): pass
+    def quit(self): run("hyprctl", "dispatch", "hl.dsp.exit()")
+    def wallpaper(self, f=None): return None if f else kon_wallpaper()
+    def reload(self): run("hyprctl", "reload")
+
+
+# niri
+
+class Niri:
+    def j(self, what): return parse(run("niri", "msg", "-j", what), [])
+
+    def windows(self):
+        wss = {w["id"]: w for w in self.j("workspaces")}
+        outs = {o["name"]: o.get("logical") or {} for o in (self.j("outputs") or {}).values()}
+        res = []
+        for c in self.j("windows"):
+            ws = wss.get(c["workspace_id"], {})
+            lay = c.get("layout") or {}
+            pos = lay.get("tile_pos_in_workspace_view")
+            # niri only gives positions for floating windows
+            if pos:
+                o = outs.get(ws.get("output"), {})
+                off = lay.get("window_offset_in_tile") or [0, 0]
+                w, h = lay.get("window_size") or [0, 0]
+                x, y = round(o.get("x", 0) + pos[0] + off[0]), round(o.get("y", 0) + pos[1] + off[1])
+            else:
+                x = y = w = h = 0
+            res.append({
+                "id": c["id"], "app_id": c.get("app_id") or "", "title": c.get("title") or "",
+                "output": ws.get("output", ""), "workspace": ws.get("idx", 0),
+                "state": "floating" if c["is_floating"] else "tiled",
+                "floating": c["is_floating"], "fullscreen": False,
+                "focused": c["is_focused"], "visible": bool(ws.get("is_active")),
+                "x": x, "y": y, "width": w, "height": h,
+            })
+        return res
+
+    def workspaces(self):
+        count = {}
+        for c in self.j("windows"):
+            count[c["workspace_id"]] = count.get(c["workspace_id"], 0) + 1
+        return sorted(({"output": w["output"], "index": w["idx"], "windows": count.get(w["id"], 0),
+                        "visible": w["is_active"], "focused": w["is_focused"]}
+                       for w in self.j("workspaces")), key=lambda w: (w["output"] or "", w["index"]))
+
+    def output(self):
+        return (self.j("focused-output") or {}).get("name", "")
+
+    def events(self):
+        p = subprocess.Popen(["niri", "msg", "-j", "event-stream"], stdout=subprocess.PIPE, text=True,
+                             preexec_fn=die_with_parent)
+        for line in p.stdout:
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            kind = next(iter(ev), "")
+            fid = (ev.get("WindowFocusChanged") or {}).get("id")
+            # new focused windows only show up here
+            win = (ev.get("WindowOpenedOrChanged") or {}).get("window") or {}
+            if fid is None and win.get("is_focused"):
+                fid = win.get("id")
+            print(f"focus {fid} " if fid is not None else kind, flush=True)
+
+    def workspace(self, n): run("niri", "msg", "action", "focus-workspace", n)
+    def overview(self): run("niri", "msg", "action", "toggle-overview")
+    def quit(self): run("niri", "msg", "action", "quit", "--skip-confirmation")
+    def wallpaper(self, f=None): return None if f else kon_wallpaper()
+    def reload(self): pass   # niri reloads on its own
+
+
+def main():
+    args = sys.argv[1:] or ["name"]
+    wm = {"aro": Aro, "hyprland": Hyprland, "niri": Niri}[name()]()
+    cmd, rest = args[0], args[1:]
+    try:
+        if cmd == "name":
+            out(name())
+        elif cmd in ("windows", "workspaces", "output"):
+            out(getattr(wm, cmd)())
+        elif cmd == "events":
+            wm.events()
+        elif cmd == "workspace" and rest:
+            wm.workspace(rest[0])
+        elif cmd in ("overview", "quit", "reload"):
+            getattr(wm, cmd)()
+        elif cmd == "wallpaper":
+            r = wm.wallpaper(rest[0] if rest else None)
+            if r is not None:
+                out(r)
+        else:
+            print(__doc__.strip(), file=sys.stderr)
+            return 2
+    except (BrokenPipeError, KeyboardInterrupt):
+        pass
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

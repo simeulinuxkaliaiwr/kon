@@ -1,0 +1,181 @@
+mod = super
+focus_follows_mouse = true
+
+cursor_theme = Windows8-cursor
+
+header_gloss = 0.8
+header_opacity = 0.75
+
+overview_layers = aero-snow
+
+bind = mod+Tab, spawn, qs -c aroclip ipc call flip toggle
+bind = mod+o, overview
+bind = alt+Tab, switch, prev
+confirm_quit = true
+
+workspace_slide = vertical
+workspace_slide_ms = 220
+
+layout = scroll
+bar = auto
+
+wallpaper_dir = ~/Pictures/Wallpapers
+
+workspaces = 4
+
+exec = ~/.local/bin/kon restore
+
+gaps = 8
+outer_gaps = 8
+border = 2
+radius = 6
+min_size = 80
+header_height = 26
+bar_height = 30
+bar_padding = 12
+text_padding = 10
+
+float_min_width = 240
+float_min_height = 120
+float_scale = 0.5
+
+background = 0xeef3f8ff
+frame = 0xdbe6f1ff
+frame_focus = 0xc3d7ecff
+border_color = 0x8ea6c0ff
+accent = 0x3a8ee6ff
+accent_soft = 0x3a8ee64d
+text = 0x1b2633ff
+text_dim = 0x5f6f80ff
+bar_color = 0x1d2b3aff
+urgent = 0xd9342bff
+drop_fill = 0x3a8ee61f
+drop_line = 0x3a8ee6cc
+
+font = Sans 10
+font_small = Sans 9
+
+anim_ms = 340
+fullscreen_anim_ms = 220
+focus_anim_ms = 160
+drop_anim_ms = 160
+open_scale = 0.88
+
+drag_threshold = 12
+resize_zone = 8
+resize_step = 0.04
+
+exec = systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP
+exec = systemctl --user restart xdg-desktop-portal xdg-desktop-portal-gtk
+
+exec = wl-paste --watch cliphist store
+exec = qs -c aroclip -d
+
+exec = swayidle -w timeout 600 '~/.local/bin/kon-lock -f' before-sleep '~/.local/bin/kon-lock -f'
+exec = mako
+
+bind = mod+q, spawn, foot
+bind = mod+a, spawn, ~/.local/bin/aroclip apps
+bind = mod+shift+a, spawn, fuzzel
+bind = mod+c, close
+bind = mod+shift+e, spawn, ~/.local/bin/aroclip power
+bind = mod+space, float
+bind = mod+shift+space, sticky
+bind = mod+t, layout, toggle
+bind = mod+r, width, next
+bind = mod+shift+Tab, switch, next
+bind = mod+escape, spawn, ~/.local/bin/kon-lock -f
+bind = mod+v, spawn, ~/.local/bin/aroclip menu
+bind = Print, spawn, ~/.local/bin/aroclip full
+bind = mod+Print, spawn, ~/.local/bin/aroclip area
+bind = mod+shift+Print, spawn, ~/.local/bin/aroclip rec
+bind = mod+ctrl+Print, spawn, ~/.local/bin/aroclip rec area
+bind = mod+shift+c, spawn, ~/.local/bin/aroclip color
+bind = mod+period, spawn, ~/.local/bin/aroclip emoji
+
+bind = mod+f, maximize
+bind = mod+shift+f, fullscreen
+bind = mod+b, split, right
+bind = mod+s, split, down
+
+bind = mod+h, focus, left
+bind = mod+j, focus, down
+bind = mod+k, focus, up
+bind = mod+l, focus, right
+
+bind = mod+shift+h, move, left
+bind = mod+shift+j, move, down
+bind = mod+shift+k, move, up
+bind = mod+shift+l, move, right
+
+bind = mod+ctrl+h, resize, left
+bind = mod+ctrl+j, resize, down
+bind = mod+ctrl+k, resize, up
+bind = mod+ctrl+l, resize, right
+
+bind = mod+alt+h, move_workspace, left
+bind = mod+alt+j, move_workspace, down
+bind = mod+alt+k, move_workspace, up
+bind = mod+alt+l, move_workspace, right
+
+bind = XF86AudioRaiseVolume, spawn, ~/.local/bin/aroclip vol up
+bind = XF86AudioLowerVolume, spawn, ~/.local/bin/aroclip vol down
+bind = XF86AudioMute, spawn, ~/.local/bin/aroclip vol mute
+bind = XF86AudioMicMute, spawn, ~/.local/bin/aroclip mic
+bind = XF86MonBrightnessUp, spawn, ~/.local/bin/aroclip bright up
+bind = XF86MonBrightnessDown, spawn, ~/.local/bin/aroclip bright down
+bind = XF86AudioPlay, spawn, playerctl play-pause
+bind = XF86AudioNext, spawn, playerctl next
+bind = XF86AudioPrev, spawn, playerctl previous
+
+bind = mod+1, workspace, 1
+bind = mod+2, workspace, 2
+bind = mod+3, workspace, 3
+bind = mod+4, workspace, 4
+bind = mod+5, workspace, 5
+bind = mod+6, workspace, 6
+bind = mod+7, workspace, 7
+bind = mod+8, workspace, 8
+
+bind = mod+shift+1, sendto, 1
+bind = mod+shift+2, sendto, 2
+bind = mod+shift+3, sendto, 3
+bind = mod+shift+4, sendto, 4
+bind = mod+shift+5, sendto, 5
+bind = mod+shift+6, sendto, 6
+bind = mod+shift+7, sendto, 7
+bind = mod+shift+8, sendto, 8
+
+keyboard_repeat_rate = 35
+keyboard_repeat_delay = 300
+mouse_accel = flat
+mouse_speed = 1.0
+mouse_natural_scroll = false
+lid_switch = true
+
+opacity_unfocused = 0.80
+window_background = 00000000
+blur = true
+blur_passes = 3
+blur_radius = 6
+blur_layers = launcher aero-taskbar aero-glass aero-flip
+
+exec = foot --app-id dropterm
+rule = app_id:dropterm  scratchpad  size 70% 55%  position 15% 5%
+bind = mod+apostrophe, scratchpad_show, dropterm
+bind = mod+shift+minus, scratchpad
+bind = mod+minus, scratchpad_show
+
+rule = app_id:*pavucontrol*  float  size 800 500  center
+rule = app_id:mpv  no_border  no_header  no_radius  opacity 1
+rule = app_id:firefox  no_header
+
+bind = mod+alt+Left, group, left
+bind = mod+alt+Down, group, down
+bind = mod+alt+Up, group, up
+bind = mod+alt+Right, group, right
+bind = mod+shift+g, ungroup
+bind = mod+bracketright, tab, next
+bind = mod+bracketleft, tab, prev
+
+bind = mod+w, wallpapers

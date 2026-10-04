@@ -1,0 +1,52 @@
+{
+  "name": "Aero",
+  "tagline": "it's 2010 and the snow is falling",
+  "layout": "aero",
+  "cursor": "Windows8-cursor",
+  "wallpaper": "~/.config/kon/wallpapers/aero.jpg",
+  "colors": {
+    "background": "eef3f8",
+    "bar": "1d2b3a",
+    "frame": "dbe6f1",
+    "frame_focus": "c3d7ec",
+    "border": "8ea6c0",
+    "text": "1b2633",
+    "dim": "5f6f80",
+    "accent": "3a8ee6",
+    "accent2": "f07a1e",
+    "on_accent": "ffffff",
+    "urgent": "d9342b",
+    "ansi": [
+      "2b3440",
+      "c4372c",
+      "3b8a2e",
+      "a86b00",
+      "1f6fc0",
+      "8a3fb0",
+      "16808f",
+      "c9d2dc",
+      "6b7888",
+      "e0554a",
+      "4fa83f",
+      "c98a10",
+      "3a8ee6",
+      "a65bd0",
+      "2a9fb0",
+      "eef2f6"
+    ]
+  },
+  "shape": {
+    "radius": 6,
+    "gaps": 8,
+    "outer_gaps": 8,
+    "bar_height": 30,
+    "opacity": 0.9,
+    "border_width": 2,
+    "header_gloss": 0.8,
+    "header_opacity": 0.75
+  },
+  "motion": {
+    "speed": 1.0,
+    "bounce": 1.0
+  }
+}

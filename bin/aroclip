@@ -1,0 +1,92 @@
+#!/bin/sh
+# usage: aroclip menu|apps|emoji|power|full|area|color|rec [area]|vol|mic|bright
+set -eu
+PATH=$HOME/.local/bin:$PATH
+
+output() { kon-wm output; }
+ipc() { qs -c aroclip ipc call "$@"; }
+
+# start the daemon on first use
+ensure() {
+	qs -c aroclip ipc show >/dev/null 2>&1 && return
+	mkdir -p "$HOME/.cache/aroclip"
+	qs -c aroclip -d >/dev/null 2>&1
+	sleep 0.5
+}
+
+vol() {
+	v=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+	muted=false
+	case $v in *MUTED*) muted=true ;; esac
+	ipc osd display volume "$(echo "$v" | awk '{print $2}')" "$muted" "$(output)" >/dev/null 2>&1 || true
+}
+
+shot() {
+	dir="${XDG_RUNTIME_DIR:-/tmp}/aroclip"
+	mkdir -p "$dir"
+	file="$dir/shot-$(date +%s%N).png"
+	out=$(output)
+	if [ "$1" = full ]; then
+		grim -o "$out" "$file"
+	else
+		geo=$(slurp -d -b 0c0f1399 -c e6a54bff -s e6a54b1f -w 2) || exit 0
+		grim -g "$geo" "$file"
+	fi
+	wl-copy --type image/png < "$file"
+	ipc clip shot "$file" "$out" >/dev/null 2>&1 || notify-send -i "$file" "Screenshot" "copied to clipboard"
+	# keep only the last few temp shots
+	ls -1t "$dir"/shot-*.png | tail -n +6 | xargs -r rm -f
+}
+
+cmd="${1:-menu}"
+[ $# -gt 0 ] && shift
+ensure
+
+case $cmd in
+menu) ipc clip toggle "$(output)" ;;
+apps) ipc apps toggle "$(output)" ;;
+emoji) ipc emoji toggle "$(output)" ;;
+power) ipc power toggle "$(output)" ;;
+full|area) shot "$cmd" ;;
+color)
+	hex=$(hyprpicker -f hex -q) || exit 0
+	[ -n "$hex" ] || exit 0
+	printf '%s' "$hex" | wl-copy
+	ipc color display "$hex" "$(output)" >/dev/null
+	;;
+rec)
+	out=$(output)
+	geo=""
+	if [ "${1:-}" = area ] && [ "$(ipc rec active)" != true ]; then
+		geo=$(slurp -d -b 0c0f1399 -c c0566bff -s c0566b1f -w 2) || exit 0
+	fi
+	ipc rec toggle "$out" "$geo" >/dev/null
+	;;
+vol)
+	case ${1:-} in
+	up) wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ ;;
+	down) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
+	mute) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
+	esac
+	vol
+	;;
+mic)
+	wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+	muted=false
+	case $(wpctl get-volume @DEFAULT_AUDIO_SOURCE@) in *MUTED*) muted=true ;; esac
+	ipc osd display mic 1 "$muted" "$(output)" >/dev/null
+	;;
+bright)
+	step=""
+	case ${1:-} in
+	up) step=5%+ ;;
+	down) step=5%- ;;
+	esac
+	pct=$(brightnessctl -m ${step:+set "$step"} | cut -d, -f4 | tr -d %)
+	ipc osd display brightness "$(echo "$pct" | awk '{print $1 / 100}')" false "$(output)" >/dev/null
+	;;
+*)
+	sed -n '2,3p' "$0" >&2
+	exit 2
+	;;
+esac

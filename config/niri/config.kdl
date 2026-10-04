@@ -1,0 +1,147 @@
+include "kon.kdl"
+
+input {
+    keyboard {
+        repeat-delay 300
+        repeat-rate 35
+    }
+    touchpad {
+        tap
+    }
+    mouse {
+        accel-profile "flat"
+    }
+    focus-follows-mouse
+}
+
+cursor {
+    xcursor-theme "Windows8-cursor"
+    xcursor-size 24
+}
+
+prefer-no-csd
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+screenshot-path null
+
+spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
+spawn-at-startup "qs" "-c" "aroclip" "-d"
+spawn-at-startup "mako"
+spawn-sh-at-startup "swayidle -w timeout 600 '~/.local/bin/kon-lock -f' before-sleep '~/.local/bin/kon-lock -f'"
+spawn-sh-at-startup "~/.local/bin/kon"
+
+blur {
+    passes 3
+    offset 3
+}
+
+layer-rule {
+    match namespace="^aero-taskbar$"
+    match namespace="^aero-glass$"
+    match namespace="^aero-flip$"
+    match namespace="^launcher$"
+    background-effect {
+        blur true
+    }
+}
+
+layer-rule {
+    match namespace="^kon-wallpaper$"
+    place-within-backdrop true
+}
+
+window-rule {
+    match is-focused=false
+    opacity 0.8
+}
+
+window-rule {
+    background-effect {
+        blur true
+    }
+}
+
+window-rule {
+    match app-id="pavucontrol"
+    open-floating true
+    default-column-width { fixed 800; }
+    default-window-height { fixed 500; }
+}
+
+window-rule {
+    match app-id="^mpv$"
+    opacity 1.0
+}
+
+binds {
+    Mod+Q { spawn "foot"; }
+    Mod+A { spawn-sh "~/.local/bin/aroclip apps"; }
+    Mod+Shift+A { spawn "fuzzel"; }
+    Mod+C { close-window; }
+    Mod+Shift+E { spawn-sh "~/.local/bin/aroclip power"; }
+    Mod+Space { toggle-window-floating; }
+    Mod+R { switch-preset-column-width; }
+    Mod+Tab { spawn-sh "qs -c aroclip ipc call flip toggle"; }
+    Mod+O repeat=false { toggle-overview; }
+    Alt+Tab { focus-window-previous; }
+    Mod+Escape allow-inhibiting=false { spawn-sh "~/.local/bin/kon-lock -f"; }
+    Mod+V { spawn-sh "~/.local/bin/aroclip menu"; }
+    Print { spawn-sh "~/.local/bin/aroclip full"; }
+    Mod+Print { spawn-sh "~/.local/bin/aroclip area"; }
+    Mod+Shift+Print { spawn-sh "~/.local/bin/aroclip rec"; }
+    Mod+Ctrl+Print { spawn-sh "~/.local/bin/aroclip rec area"; }
+    Mod+Shift+C { spawn-sh "~/.local/bin/aroclip color"; }
+    Mod+Period { spawn-sh "~/.local/bin/aroclip emoji"; }
+    Mod+F { maximize-column; }
+    Mod+Shift+F { fullscreen-window; }
+    Mod+Shift+G { toggle-column-tabbed-display; }
+    Mod+BracketLeft { consume-or-expel-window-left; }
+    Mod+BracketRight { consume-or-expel-window-right; }
+
+    Mod+H { focus-column-left; }
+    Mod+J { focus-window-or-workspace-down; }
+    Mod+K { focus-window-or-workspace-up; }
+    Mod+L { focus-column-right; }
+    Mod+Shift+H { move-column-left; }
+    Mod+Shift+J { move-window-down-or-to-workspace-down; }
+    Mod+Shift+K { move-window-up-or-to-workspace-up; }
+    Mod+Shift+L { move-column-right; }
+    Mod+Ctrl+H { set-column-width "-10%"; }
+    Mod+Ctrl+J { set-window-height "+10%"; }
+    Mod+Ctrl+K { set-window-height "-10%"; }
+    Mod+Ctrl+L { set-column-width "+10%"; }
+    Mod+Alt+H { move-workspace-to-monitor-left; }
+    Mod+Alt+J { move-workspace-to-monitor-down; }
+    Mod+Alt+K { move-workspace-to-monitor-up; }
+    Mod+Alt+L { move-workspace-to-monitor-right; }
+
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+Shift+1 { move-column-to-workspace 1; }
+    Mod+Shift+2 { move-column-to-workspace 2; }
+    Mod+Shift+3 { move-column-to-workspace 3; }
+    Mod+Shift+4 { move-column-to-workspace 4; }
+    Mod+Shift+5 { move-column-to-workspace 5; }
+    Mod+Shift+6 { move-column-to-workspace 6; }
+    Mod+Shift+7 { move-column-to-workspace 7; }
+    Mod+Shift+8 { move-column-to-workspace 8; }
+
+    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "~/.local/bin/aroclip vol up"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "~/.local/bin/aroclip vol down"; }
+    XF86AudioMute allow-when-locked=true { spawn-sh "~/.local/bin/aroclip vol mute"; }
+    XF86AudioMicMute allow-when-locked=true { spawn-sh "~/.local/bin/aroclip mic"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn-sh "~/.local/bin/aroclip bright up"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn-sh "~/.local/bin/aroclip bright down"; }
+    XF86AudioPlay allow-when-locked=true { spawn-sh "playerctl play-pause"; }
+    XF86AudioNext allow-when-locked=true { spawn-sh "playerctl next"; }
+    XF86AudioPrev allow-when-locked=true { spawn-sh "playerctl previous"; }
+}
