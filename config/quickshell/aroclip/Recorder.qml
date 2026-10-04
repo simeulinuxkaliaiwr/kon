@@ -20,7 +20,7 @@ Scope {
         output = out;
         file = dir + "/rec-" + Qt.formatDateTime(new Date(), "yyyy-MM-dd_HH-mm-ss") + ".mp4";
         const where = geometry !== "" ? ["-g", geometry] : ["-o", out];
-        proc.command = ["sh", "-c", 'mkdir -p "$1" && shift && exec wl-screenrec "$@"', "sh", dir].concat(where, ["-f", file]);
+        proc.command = ["sh", "-c", 'mkdir -p "$1" && shift && exec wl-screenrec --no-hw "$@"', "sh", dir].concat(where, ["-f", file]);
         seconds = 0;
         proc.running = true;
     }
